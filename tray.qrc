@@ -1,7 +1,6 @@
-<!DOCTYPE RCC><RCC version="1.0">
-<qresource prefix="/">
-   <file>img/gear.svg</file>
-   <file>img/gear-white.svg</file>
-   <file>img/gear-white2.svg</file>
-</qresource>
+<RCC>
+    <qresource prefix="/">
+        <file>img/gear-white.svg</file>
+        <file>img/gear-white2.svg</file>
+    </qresource>
 </RCC>

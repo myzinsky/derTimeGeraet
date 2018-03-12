@@ -5,6 +5,7 @@
 #include <QFileSystemModel>
 #include <QLinkedList>
 #include <QMainWindow>
+#include <QProcess>
 #include <QSettings>
 #include <QSystemTrayIcon>
 
@@ -41,6 +42,16 @@ private slots:
 
     void setupTrayIcon();
 
+    void on_pushButtonExeptionsAdd_clicked();
+
+    void loadIgnoreList();
+
+    void saveIgnoreList();
+
+    void on_pushButtonExeptionsRemove_clicked();
+
+    void rsyncOutput();
+
 private:
     Ui::derTimeGeraet *ui;
     QFileSystemModel *dirModel;
@@ -49,8 +60,8 @@ private:
     QAction *restoreAction;
     QTimer *timer;
     std::vector<QIcon> trayFrames;
-    bool trayAnimated;
     int trayIconNumber;
+    QProcess *pRsync;
 
     // Settings:
     QString settingsFile;

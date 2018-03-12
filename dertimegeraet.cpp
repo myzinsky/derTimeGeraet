@@ -9,6 +9,7 @@
 #include <QCloseEvent>
 #include <QMessageBox>
 #include <QTimer>
+#include <QMenu>
 
 
 derTimeGeraet::derTimeGeraet(QWidget *parent) :
@@ -39,6 +40,9 @@ derTimeGeraet::derTimeGeraet(QWidget *parent) :
         ui->treeView->setEnabled(false);
         ui->pushButtonStart->setEnabled(false);
     }
+
+    // Load Ignore List:
+    loadIgnoreList();
 
     // Setup Tray:
     setupTrayIcon();
@@ -86,11 +90,11 @@ void derTimeGeraet::setupTrayIcon()
     trayIcon = new QSystemTrayIcon(trayFrames.at(0), this);
     trayIconNumber = 0;
 
-    quitAction = new QAction(tr("&Quit"), this);
-    connect(quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
-
     restoreAction = new QAction(tr("&Show"), this);
     connect(restoreAction, &QAction::triggered, this, &QWidget::showNormal);
+
+    quitAction = new QAction(tr("&Quit"), this);
+    connect(quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
 
     QMenu *tray_icon_menu = new QMenu;
     tray_icon_menu->addAction(quitAction);
@@ -214,7 +218,6 @@ void derTimeGeraet::on_listView_clicked(const QModelIndex &index)
 void derTimeGeraet::on_treeView_doubleClicked(const QModelIndex &index)
 {
     QString file = ui->treeView->model()->data(index, QFileSystemModel::FilePathRole).toString();
-    qDebug() << file;
     QDesktopServices::openUrl(QUrl("file://" + file, QUrl::TolerantMode));
 }
 
@@ -229,9 +232,19 @@ void derTimeGeraet::on_pushButtonStart_clicked()
         QStringList cmdRsync;
         cmdRsync.append("-a");
         cmdRsync.append("-h");
+        cmdRsync.append("-P");
+
+        for(int i = 0; i < ui->listWidgetExeptions->count(); i++)
+        {
+            QString ignore = ui->listWidgetExeptions->item(i)->text();
+            ignore.replace(source, "");
+            cmdRsync.append("--exclude="+ignore);
+        }
         cmdRsync.append("--link-dest=" + dest + "/current");
         cmdRsync.append(source+"/");
         cmdRsync.append(dest + "/" + time);
+
+        qDebug() << cmdRsync;
 
         QStringList cmdRm;
         cmdRm.append("-f");
@@ -246,9 +259,13 @@ void derTimeGeraet::on_pushButtonStart_clicked()
         ui->pushButtonStart->setDisabled(true);
         setTrayIcon(true);
 
-        QProcess pRsync;
-        pRsync.start("/usr/bin/rsync", cmdRsync);
-        pRsync.waitForFinished(-1);
+        pRsync = new QProcess(this);
+        connect(pRsync, SIGNAL(readyReadStandardOutput()), this, SLOT(rsyncOutput()));
+        connect(pRsync, SIGNAL(readyReadStandardError()),  this, SLOT(rsyncOutput()));
+        pRsync->start("/usr/bin/rsync", cmdRsync);
+        pRsync->waitForFinished(-1);
+
+        delete pRsync;
 
         QProcess pRm;
         pRm.start("/bin/rm", cmdRm);
@@ -262,4 +279,57 @@ void derTimeGeraet::on_pushButtonStart_clicked()
         ui->pushButtonStart->setText("Start Backup");
         setTrayIcon(false);
     }
+}
+
+void derTimeGeraet::on_pushButtonExeptionsAdd_clicked()
+{
+    QString dir = QFileDialog::getExistingDirectory(this,
+                                                tr("Select Directory"),
+                                                "/",
+                                                QFileDialog::ShowDirsOnly);
+
+    // TODO: check if item already exists ...
+    ui->listWidgetExeptions->addItem(dir);
+    saveIgnoreList();
+}
+
+void derTimeGeraet::loadIgnoreList()
+{
+    QSettings settings(settingsFile, QSettings::NativeFormat);
+    int size = settings.beginReadArray("Ignores");
+    for (int i = 0; i < size; ++i) {
+        settings.setArrayIndex(i);
+        QString ignore = settings.value("Ignore").toString();
+        ui->listWidgetExeptions->addItem(ignore);
+    }
+    settings.endArray();
+}
+
+void derTimeGeraet::saveIgnoreList()
+{
+    QSettings settings(settingsFile, QSettings::NativeFormat);
+    settings.beginWriteArray("Ignores");
+    for(int i = 0; i < ui->listWidgetExeptions->count(); i++)
+    {
+        QString ignore = ui->listWidgetExeptions->item(i)->text();
+        settings.setArrayIndex(i);
+        settings.setValue("Ignore", ignore);
+    }
+    settings.endArray();
+}
+
+void derTimeGeraet::on_pushButtonExeptionsRemove_clicked()
+{
+   QList<QListWidgetItem*> items = ui->listWidgetExeptions->selectedItems();
+   foreach(QListWidgetItem * item, items)
+   {
+       delete ui->listWidgetExeptions->takeItem(ui->listWidgetExeptions->row(item));
+   }
+   saveIgnoreList();
+}
+
+void derTimeGeraet::rsyncOutput()
+{
+    qDebug() << pRsync->readAllStandardOutput();
+    qDebug() << pRsync->readAllStandardError();
 }
