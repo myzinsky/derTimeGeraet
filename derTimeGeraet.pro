@@ -32,6 +32,7 @@ FORMS += dertimegeraet.ui
 
 RESOURCES += tray.qrc
 
+ICON = img/gear-grey.icns
 QMAKE_INFO_PLIST = Info.plist
 
 
