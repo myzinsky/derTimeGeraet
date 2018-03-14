@@ -228,7 +228,7 @@ void derTimeGeraet::on_pushButtonStart_clicked()
 
     if(QDir(dest).exists() && QDir(source).exists())
     {
-        QString time = QDateTime::currentDateTime().toString(Qt::DateFormat::ISODate);
+        time = QDateTime::currentDateTime().toString(Qt::DateFormat::ISODate);
         QStringList cmdRsync;
         cmdRsync.append("-a");
         cmdRsync.append("-h");
@@ -246,40 +246,18 @@ void derTimeGeraet::on_pushButtonStart_clicked()
 
         qDebug() << cmdRsync;
 
-        QStringList cmdRm;
-        cmdRm.append("-f");
-        cmdRm.append(dest + "/current");
-
-        QStringList cmdLn;
-        cmdLn.append("-s");
-        cmdLn.append(dest + "/" + time);
-        cmdLn.append(dest + "/current");
-
         ui->pushButtonStart->setText("Preparing Backup (This may take a while)");
         ui->pushButtonStart->setDisabled(true);
         setTrayIcon(true);
 
         pRsync = new QProcess(this);
-        connect(pRsync, SIGNAL(readyReadStandardOutput()), this, SLOT(rsyncOutput()));
-        connect(pRsync, SIGNAL(readyReadStandardError()),  this, SLOT(rsyncOutput()));
+        connect(pRsync, SIGNAL(finished(int , QProcess::ExitStatus )), this, SLOT(on_rsyncFinished(int , QProcess::ExitStatus )));
+
         pRsync->start("/usr/bin/rsync", cmdRsync);
-        pRsync->waitForFinished(-1);
-
-        delete pRsync;
-
-        QProcess pRm;
-        pRm.start("/bin/rm", cmdRm);
-        pRm.waitForFinished(-1);
-
-        QProcess pLn;
-        pLn.start("/bin/ln", QStringList() << cmdLn);
-        pLn.waitForFinished(-1);
-
-        ui->pushButtonStart->setEnabled(true);
-        ui->pushButtonStart->setText("Start Backup");
-        setTrayIcon(false);
     }
 }
+
+
 
 void derTimeGeraet::on_pushButtonExeptionsAdd_clicked()
 {
@@ -328,8 +306,40 @@ void derTimeGeraet::on_pushButtonExeptionsRemove_clicked()
    saveIgnoreList();
 }
 
-void derTimeGeraet::rsyncOutput()
+void derTimeGeraet::on_rsyncFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-    qDebug() << pRsync->readAllStandardOutput();
+    qDebug() << pRsync->errorString();
     qDebug() << pRsync->readAllStandardError();
+    qDebug() << pRsync->readAllStandardOutput();
+
+    if(exitStatus == QProcess::NormalExit && exitCode == 0 )
+    {
+        QString dest = ui->lineEditDest->text();
+
+        QStringList cmdRm;
+        cmdRm.append("-f");
+        cmdRm.append(dest + "/current");
+        QProcess pRm;
+        pRm.start("/bin/rm", cmdRm);
+        pRm.waitForFinished(-1);
+
+        QStringList cmdLn;
+        cmdLn.append("-s");
+        cmdLn.append(dest + "/" + time);
+        cmdLn.append(dest + "/current");
+        QProcess pLn;
+        pLn.start("/bin/ln", QStringList() << cmdLn);
+        pLn.waitForFinished(-1);
+
+    }
+    else
+    {
+        QMessageBox::critical(this, tr("Der Time Gerät"),
+                              tr("Synchronisation Failed"));
+    }
+
+    ui->pushButtonStart->setEnabled(true);
+    ui->pushButtonStart->setText("Start Backup");
+    setTrayIcon(false);
 }
+

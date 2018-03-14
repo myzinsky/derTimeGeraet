@@ -50,7 +50,7 @@ private slots:
 
     void on_pushButtonExeptionsRemove_clicked();
 
-    void rsyncOutput();
+    void on_rsyncFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
 private:
     Ui::derTimeGeraet *ui;
@@ -62,6 +62,7 @@ private:
     std::vector<QIcon> trayFrames;
     int trayIconNumber;
     QProcess *pRsync;
+    QString time;
 
     // Settings:
     QString settingsFile;
