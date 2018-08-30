@@ -10,6 +10,7 @@
 #include <QMessageBox>
 #include <QTimer>
 #include <QMenu>
+#include "rsyncErrors.h"
 
 
 derTimeGeraet::derTimeGeraet(QWidget *parent) :
@@ -226,13 +227,15 @@ void derTimeGeraet::on_pushButtonStart_clicked()
     QString dest = ui->lineEditDest->text();
     QString source = ui->lineEditSource->text();
 
+    QString log = "";
+    ui->plainTextEdit->setPlainText(log);
+
     if(QDir(dest).exists() && QDir(source).exists())
     {
         time = QDateTime::currentDateTime().toString(Qt::DateFormat::ISODate);
         QStringList cmdRsync;
         cmdRsync.append("-a");
         cmdRsync.append("-h");
-        cmdRsync.append("-P");
 
         for(int i = 0; i < ui->listWidgetExeptions->count(); i++)
         {
@@ -308,11 +311,22 @@ void derTimeGeraet::on_pushButtonExeptionsRemove_clicked()
 
 void derTimeGeraet::on_rsyncFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-    qDebug() << pRsync->errorString();
-    qDebug() << pRsync->readAllStandardError();
-    qDebug() << pRsync->readAllStandardOutput();
+    QString log;
 
-    if(exitStatus == QProcess::NormalExit && exitCode == 0 )
+    log  =     "Rsync Return Code: -------------------------------------\n";
+    log += QString::number(exitCode);
+    if(exitCode >= 0 && exitCode < 36)
+        log += " (" + rsyncErrors[exitCode] + ")";
+    log += "\n\nError String: ------------------------------------------\n";
+    log += pRsync->errorString();
+    log += "\n\nStandard Error: ----------------------------------------\n";
+    log += pRsync->readAllStandardError();
+    log += "\n\nStandard Output: ---------------------------------------\n";
+    log += pRsync->readAllStandardOutput();
+
+    ui->plainTextEdit->setPlainText(log);
+
+    if(exitStatus == QProcess::NormalExit && (exitCode == 0 || exitCode == 24))
     {
         QString dest = ui->lineEditDest->text();
 
@@ -336,6 +350,8 @@ void derTimeGeraet::on_rsyncFinished(int exitCode, QProcess::ExitStatus exitStat
     {
         QMessageBox::critical(this, tr("Der Time Gerät"),
                               tr("Synchronisation Failed"));
+
+        // TODO cleanup again
     }
 
     ui->pushButtonStart->setEnabled(true);
