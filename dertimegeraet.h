@@ -3,7 +3,9 @@
 
 #include <QCloseEvent>
 #include <QFileSystemModel>
+#include <QStringListModel>
 #include <QLinkedList>
+#include <QListWidgetItem>
 #include <QMainWindow>
 #include <QProcess>
 #include <QSettings>
@@ -44,13 +46,17 @@ private slots:
 
     void on_pushButtonExeptionsAdd_clicked();
 
-    void loadIgnoreList();
-
-    void saveIgnoreList();
-
     void on_pushButtonExeptionsRemove_clicked();
 
-    void on_rsyncFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void on_borgFinished(int exitCode, QProcess::ExitStatus exitStatus);
+
+    void on_pruneFinished(int exitCode, QProcess::ExitStatus exitStatus);
+
+    void on_pushButtonPassword_clicked();
+
+    void on_pushButtonPruning_clicked();
+
+    void on_listWidget_itemClicked(QListWidgetItem *item);
 
 private:
     Ui::derTimeGeraet *ui;
@@ -61,8 +67,18 @@ private:
     QTimer *timer;
     std::vector<QIcon> trayFrames;
     int trayIconNumber;
-    QProcess *pRsync;
+    QProcess *pBorg;
+    QProcess *pPrune;
     QString time;
+    QString borg;
+
+    void loadBackupList();
+    void mount(QString key);
+    void umount();
+    void loadIgnoreList();
+    void saveIgnoreList();
+    void locateBorg();
+    void prune();
 
     // Settings:
     QString settingsFile;

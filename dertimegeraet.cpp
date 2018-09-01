@@ -10,7 +10,6 @@
 #include <QMessageBox>
 #include <QTimer>
 #include <QMenu>
-#include "rsyncErrors.h"
 
 
 derTimeGeraet::derTimeGeraet(QWidget *parent) :
@@ -20,27 +19,11 @@ derTimeGeraet::derTimeGeraet(QWidget *parent) :
     ui->setupUi(this);
     ui->tabWidget->setCurrentIndex(1);
 
-    // Setup Settings:
-    settingsFile = QApplication::applicationDirPath() + "/settings.ini";
-    bool settingsAvailable = loadSettings();
+    // Locate Borg:
+    locateBorg();
 
-    // Setup Dir Model:
-    QString dir = ui->lineEditDest->text();
-    if(settingsAvailable == true && QDir(dir).exists())
-    {
-        dirModel = new QFileSystemModel(this);
-        dirModel->setFilter(QDir::NoDotAndDotDot | QDir::Files | QDir::Dirs);
-        dirModel->setRootPath("/");
-        ui->listView->setModel(dirModel);
-        ui->listView->setRootIndex(dirModel->index(dir));
-        ui->tabWidget->setCurrentIndex(0);
-    }
-    else
-    {
-        ui->listView->setEnabled(false);
-        ui->treeView->setEnabled(false);
-        ui->pushButtonStart->setEnabled(false);
-    }
+    // Load List of Backups:
+    loadBackupList();
 
     // Load Ignore List:
     loadIgnoreList();
@@ -49,12 +32,78 @@ derTimeGeraet::derTimeGeraet(QWidget *parent) :
     setupTrayIcon();
 
     // Prevent close from closing:
-    this->setWindowFlags(Qt::Tool);
+    this->setWindowFlags(Qt::Widget);
     QApplication::setQuitOnLastWindowClosed(false);
+}
+
+void derTimeGeraet::loadBackupList()
+{
+    // Setup Settings:
+    settingsFile = QApplication::applicationDirPath() + "/settings.ini";
+    bool settingsAvailable = loadSettings();
+
+    // Setup Dir Model:
+    QString dir = ui->lineEditDest->text();
+    if(settingsAvailable == true && QDir(dir).exists())
+    {
+        ui->listWidget->clear();
+
+        QSettings settings(settingsFile, QSettings::NativeFormat);
+        QString dest = settings.value("dest", "").toString();
+        QString pass = settings.value("pass", "").toString();
+
+        QStringList cmdList;
+        cmdList.append("list");
+        cmdList.append(dest);
+        QProcess pList;
+
+        qDebug() << cmdList;
+
+        // Add pass as environment variable:
+        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        env.insert("BORG_PASSPHRASE", pass);
+        pList.setProcessEnvironment(env);
+
+        pList.start(borg, cmdList);
+        pList.waitForFinished(-1);
+        QString listString = pList.readAllStandardOutput();
+
+        QStringList list = listString.split('\n');
+
+        // Create model
+        for(int i = 0; i < list.size(); i++)
+        {
+            qDebug() << list.at(i);
+            QRegExp rx("([^\\s]+)\\s+(.+)\\s+\\[(.+)\\]");
+            QString name = "";
+            QString key = "";
+            bool match = rx.exactMatch(list.at(i));
+            if (match) {
+                name = rx.cap(2);
+                key = rx.cap(1);
+            }
+
+            auto *item = new QListWidgetItem(name);
+            QVariant v;
+            v.setValue(key);
+            item->setData(Qt::UserRole, v);
+            ui->listWidget->addItem(item);
+        }
+
+        ui->tabWidget->setCurrentIndex(0);
+    }
+    else
+    {
+        ui->listWidget->setEnabled(false);
+        ui->treeView->setEnabled(false);
+        ui->pushButtonStart->setEnabled(false);
+    }
 }
 
 derTimeGeraet::~derTimeGeraet()
 {
+    qDebug() << "UMOUNT!";
+    umount();
     delete ui;
 }
 
@@ -140,11 +189,23 @@ bool derTimeGeraet::loadSettings()
     if (QFile(settingsFile).exists())
     {
         QSettings settings(settingsFile, QSettings::NativeFormat);
-        QString source = settings.value("source", "").toString();
-        QString dest = settings.value("dest", "").toString();
+        QString source  = settings.value("source", "").toString();
+        QString dest    = settings.value("dest", "").toString();
+        QString pass    = settings.value("pass", "").toString();
+        QString hourly  = settings.value("hourly", "").toString();
+        QString daily   = settings.value("daily", "").toString();
+        QString weekly  = settings.value("weekly", "").toString();
+        QString monthly = settings.value("monthly", "").toString();
+        QString yearly  = settings.value("yearly", "").toString();
 
         ui->lineEditDest->setText(dest);
         ui->lineEditSource->setText(source);
+        ui->linePassword->setText(pass);
+        ui->lineEditHourly->setText(hourly);
+        ui->lineEditDaily->setText(daily);
+        ui->lineEditWeekly->setText(weekly);
+        ui->lineEditMonthly->setText(monthly);
+        ui->lineEditYearly->setText(yearly);
 
         ui->tab1->setEnabled(true);
         ui->pushButtonStart->setEnabled(true);
@@ -173,12 +234,49 @@ void derTimeGeraet::saveSettings()
          settings.setValue("source", source);
     }
 
-    if(!ui->lineEditDest->text().isEmpty() && !ui->lineEditSource->text().isEmpty())
+    if(!ui->linePassword->text().isEmpty())
     {
-        ui->listView->setEnabled(false);
-        ui->treeView->setEnabled(false);
-        ui->pushButtonStart->setEnabled(false);
+         QString pass = ui->linePassword->text();
+         settings.setValue("pass", pass);
     }
+
+    if(!ui->lineEditHourly->text().isEmpty())
+    {
+         QString hourly = ui->lineEditHourly->text();
+         settings.setValue("hourly", hourly);
+    }
+
+    if(!ui->lineEditDaily->text().isEmpty())
+    {
+         QString daily = ui->lineEditDaily->text();
+         settings.setValue("daily", daily);
+    }
+
+    if(!ui->lineEditWeekly->text().isEmpty())
+    {
+         QString weekly = ui->lineEditWeekly->text();
+         settings.setValue("weekly", weekly);
+    }
+
+    if(!ui->lineEditMonthly->text().isEmpty())
+    {
+         QString monthly = ui->lineEditMonthly->text();
+         settings.setValue("monthly", monthly);
+    }
+
+    if(!ui->lineEditYearly->text().isEmpty())
+    {
+         QString yearly = ui->lineEditYearly->text();
+         settings.setValue("yearly", yearly);
+    }
+
+    // TODO:
+    //if(!ui->lineEditDest->text().isEmpty() && !ui->lineEditSource->text().isEmpty())
+    //{
+    //    ui->listWidget->setEnabled(false);
+    //    ui->treeView->setEnabled(false);
+    //    ui->pushButtonStart->setEnabled(false);
+    //}
 }
 
 void derTimeGeraet::on_pushButtonSource_clicked()
@@ -203,17 +301,7 @@ void derTimeGeraet::on_pushButtonDest_clicked()
 
 void derTimeGeraet::on_listView_clicked(const QModelIndex &index)
 {
-    QString dir = ui->listView->model()->data(index, QFileSystemModel::FilePathRole).toString();
-
-    if(QDir(dir).exists())
-    {
-        dirModel = new QFileSystemModel(this);
-        dirModel->setFilter(QDir::NoDotAndDotDot | QDir::Files | QDir::Dirs);
-        dirModel->setRootPath("/");
-        ui->treeView->setModel(dirModel);
-        ui->treeView->setRootIndex(dirModel->index(dir));
-        ui->treeView->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-    }
+    // TODO Remove me
 }
 
 void derTimeGeraet::on_treeView_doubleClicked(const QModelIndex &index)
@@ -226,40 +314,72 @@ void derTimeGeraet::on_pushButtonStart_clicked()
 {
     QString dest = ui->lineEditDest->text();
     QString source = ui->lineEditSource->text();
+    QString pass = ui->linePassword->text();
 
     QString log = "";
     ui->plainTextEdit->setPlainText(log);
 
     if(QDir(dest).exists() && QDir(source).exists())
     {
+        /*
+         * borg create                                                \
+         *  --verbose                                                 \
+         *  --filter AME                                              \
+         *  --list                                                    \
+         *  --stats                                                   \
+         *  --show-rc                                                 \
+         *  --compression lz4                                         \
+         *  --exclude-caches                                          \
+         *  --exclude '/Users/myzinsky/Desktop/Bilder'                \
+         *  --exclude '/Users/myzinsky/EMS/Programming/gem5.traces'   \
+         *  --exclude '/Users/myzinsky/Zeugs/steg/vid'                \
+         *  ::'{hostname}-{now}'                                      \
+         *  /Users/myzinsky                                           \
+         */
+
         time = QDateTime::currentDateTime().toString(Qt::DateFormat::ISODate);
-        QStringList cmdRsync;
-        cmdRsync.append("-a");
-        cmdRsync.append("-h");
+        QStringList cmdBorg;
+        cmdBorg.append("create");
+        cmdBorg.append("--filter");
+        cmdBorg.append("AME");
+        cmdBorg.append("--stats");
+        cmdBorg.append("--show-rc");
+        cmdBorg.append("--compression");
+        cmdBorg.append("lz4");
+        cmdBorg.append("--exclude-caches");
 
         for(int i = 0; i < ui->listWidgetExeptions->count(); i++)
         {
             QString ignore = ui->listWidgetExeptions->item(i)->text();
-            ignore.replace(source, "");
-            cmdRsync.append("--exclude="+ignore);
+            cmdBorg.append("--exclude");
+            cmdBorg.append(ignore);
         }
-        cmdRsync.append("--link-dest=" + dest + "/current");
-        cmdRsync.append(source+"/");
-        cmdRsync.append(dest + "/" + time);
+        cmdBorg.append(dest + "::{hostname}-{now}");
+        cmdBorg.append(source);
 
-        qDebug() << cmdRsync;
+
+        qDebug() << cmdBorg;
 
         ui->pushButtonStart->setText("Preparing Backup (This may take a while)");
         ui->pushButtonStart->setDisabled(true);
         setTrayIcon(true);
 
-        pRsync = new QProcess(this);
-        connect(pRsync, SIGNAL(finished(int , QProcess::ExitStatus )), this, SLOT(on_rsyncFinished(int , QProcess::ExitStatus )));
+        pBorg = new QProcess(this);
 
-        pRsync->start("/usr/bin/rsync", cmdRsync);
+        // Add pass as environment variable:
+        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        env.insert("BORG_PASSPHRASE", pass);
+        pBorg->setProcessEnvironment(env);
+
+        connect(pBorg,
+                SIGNAL(finished(int , QProcess::ExitStatus )),
+                this,
+                SLOT(on_borgFinished(int , QProcess::ExitStatus )));
+
+        // TODO detect borg:
+        pBorg->start(borg, cmdBorg);
     }
 }
-
 
 
 void derTimeGeraet::on_pushButtonExeptionsAdd_clicked()
@@ -299,6 +419,29 @@ void derTimeGeraet::saveIgnoreList()
     settings.endArray();
 }
 
+void derTimeGeraet::locateBorg()
+{
+    if(QFile::exists("/usr/local/bin/borg"))
+    {
+        borg = "/usr/local/bin/borg";
+    }
+    else if(QFile::exists("/usr/bin/borg"))
+    {
+        borg = "/usr/bin/borg";
+    }
+    else if(QFile::exists("/bin/borg"))
+    {
+        borg = "/bin/borg";
+    }
+    else
+    {
+        QMessageBox::critical(this,
+                              tr("Der Time Gerät"),
+                              tr("Cannot find borg"));
+        exit(-1);
+    }
+}
+
 void derTimeGeraet::on_pushButtonExeptionsRemove_clicked()
 {
    QList<QListWidgetItem*> items = ui->listWidgetExeptions->selectedItems();
@@ -309,53 +452,200 @@ void derTimeGeraet::on_pushButtonExeptionsRemove_clicked()
    saveIgnoreList();
 }
 
-void derTimeGeraet::on_rsyncFinished(int exitCode, QProcess::ExitStatus exitStatus)
+void derTimeGeraet::on_borgFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     QString log;
 
-    log  =     "Rsync Return Code: -------------------------------------\n";
+    log  =     "Borg Return Code: #####################################\n";
     log += QString::number(exitCode);
-    if(exitCode >= 0 && exitCode < 36)
-        log += " (" + rsyncErrors[exitCode] + ")";
-    log += "\n\nError String: ------------------------------------------\n";
-    log += pRsync->errorString();
-    log += "\n\nStandard Error: ----------------------------------------\n";
-    log += pRsync->readAllStandardError();
-    log += "\n\nStandard Output: ---------------------------------------\n";
-    log += pRsync->readAllStandardOutput();
+    log += "\n\nError String: ##########################################\n";
+    log += pBorg->errorString();
+    log += "\n\nStandard Error: ########################################\n";
+    log += pBorg->readAllStandardError();
+    log += "\n\nStandard Output: #######################################\n";
+    log += pBorg->readAllStandardOutput();
 
     ui->plainTextEdit->setPlainText(log);
 
-    if(exitStatus == QProcess::NormalExit && (exitCode == 0 || exitCode == 24))
+    if(exitStatus == QProcess::NormalExit && (exitCode == 0 || exitCode == 1))
     {
-        QString dest = ui->lineEditDest->text();
-
-        QStringList cmdRm;
-        cmdRm.append("-f");
-        cmdRm.append(dest + "/current");
-        QProcess pRm;
-        pRm.start("/bin/rm", cmdRm);
-        pRm.waitForFinished(-1);
-
-        QStringList cmdLn;
-        cmdLn.append("-s");
-        cmdLn.append(dest + "/" + time);
-        cmdLn.append(dest + "/current");
-        QProcess pLn;
-        pLn.start("/bin/ln", QStringList() << cmdLn);
-        pLn.waitForFinished(-1);
-
+        prune();
     }
     else
     {
-        QMessageBox::critical(this, tr("Der Time Gerät"),
+        QMessageBox::critical(this,
+                              tr("Der Time Gerät"),
                               tr("Synchronisation Failed"));
 
         // TODO cleanup again
     }
+}
 
+void derTimeGeraet::prune()
+{
+    QString dest = ui->lineEditDest->text();
+    QString source = ui->lineEditSource->text();
+    QString pass = ui->linePassword->text();
+    QString hourly = ui->lineEditHourly->text();
+    QString daily = ui->lineEditDaily->text();
+    QString weekly = ui->lineEditWeekly->text();
+    QString monthly = ui->lineEditMonthly->text();
+    QString yearly = ui->lineEditYearly->text();
+
+    if(QDir(dest).exists() && QDir(source).exists())
+    {
+        /*
+         * borg prune                      \
+         * --list                          \
+         * --prefix '{hostname}-'          \
+         * --show-rc                       \
+         * --keep-daily    7               \
+         * --keep-weekly   4               \
+         * --keep-monthly  6               \
+         * --keep-yearly   1               \
+         */
+
+        time = QDateTime::currentDateTime().toString(Qt::DateFormat::ISODate);
+        QStringList cmdBorg;
+        cmdBorg.append("prune");
+        cmdBorg.append("--list");
+        cmdBorg.append("--prefix");
+        cmdBorg.append("{hostname}-");
+        cmdBorg.append("--show-rc");
+        cmdBorg.append("--keep-hourly");
+        cmdBorg.append(hourly);
+        cmdBorg.append("--keep-daily");
+        cmdBorg.append(daily);
+        cmdBorg.append("--keep-weekly");
+        cmdBorg.append(weekly);
+        cmdBorg.append("--keep-monthly");
+        cmdBorg.append(monthly);
+        cmdBorg.append("--keep-yearly");
+        cmdBorg.append(yearly);
+        cmdBorg.append(dest);
+
+        qDebug() << cmdBorg;
+
+        ui->pushButtonStart->setText("Pruning (This may take a while)");
+        ui->pushButtonStart->setDisabled(true);
+
+        pPrune = new QProcess(this);
+
+        // Add pass as environment variable:
+        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        env.insert("BORG_PASSPHRASE", pass);
+        pPrune->setProcessEnvironment(env);
+
+        connect(pPrune,
+                SIGNAL(finished(int , QProcess::ExitStatus )),
+                this,
+                SLOT(on_pruneFinished(int , QProcess::ExitStatus )));
+
+        // TODO detect borg:
+        pPrune->start(borg, cmdBorg);
+    }
+}
+
+
+void derTimeGeraet::on_pruneFinished(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    QString log = ui->plainTextEdit->toPlainText()+"\n\n";
+
+    log +=     "Prune Return Code: #####################################\n";
+    log += QString::number(exitCode);
+    log += "\n\nError String:###########################################\n";
+    log += pBorg->errorString();
+    log += "\n\nStandard Error: ########################################\n";
+    log += pBorg->readAllStandardError();
+    log += "\n\nStandard Output: #######################################\n";
+    log += pBorg->readAllStandardOutput();
+
+    ui->plainTextEdit->setPlainText(log);
+
+    loadBackupList();
     ui->pushButtonStart->setEnabled(true);
     ui->pushButtonStart->setText("Start Backup");
     setTrayIcon(false);
 }
 
+
+void derTimeGeraet::on_pushButtonPassword_clicked()
+{
+    saveSettings();
+}
+
+void derTimeGeraet::on_pushButtonPruning_clicked()
+{
+    saveSettings();
+}
+
+void derTimeGeraet::mount(QString key)
+{
+    QSettings settings(settingsFile, QSettings::NativeFormat);
+    QString dest = settings.value("dest", "").toString();
+    QString source = ui->lineEditSource->text();
+    QString pass = settings.value("pass", "").toString();
+    QString dir = "/tmp/derTimeGeraet/";
+
+    // MOUNT:
+    if(!QDir(dir).exists())
+    {
+        QDir().mkdir(dir);
+    }
+
+    QStringList cmdMount;
+    cmdMount.append("mount");
+    cmdMount.append(dest+"::"+key);
+    cmdMount.append("/tmp/derTimeGeraet/");
+    QProcess pMount;
+
+    qDebug() << cmdMount;
+
+    // Add pass as environment variable:
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("BORG_PASSPHRASE", pass);
+    pMount.setProcessEnvironment(env);
+
+    pMount.start(borg, cmdMount);
+    pMount.waitForFinished(-1);
+    qDebug() << pMount.readAllStandardError();
+
+    dirModel = new QFileSystemModel(this);
+    dirModel->setFilter(QDir::NoDotAndDotDot | QDir::Files | QDir::Dirs);
+    dirModel->setRootPath("/");
+    ui->treeView->setModel(dirModel);
+    ui->treeView->setRootIndex(dirModel->index(dir+source));
+    ui->treeView->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+}
+
+void derTimeGeraet::umount()
+{
+    QSettings settings(settingsFile, QSettings::NativeFormat);
+    QString dest = settings.value("dest", "").toString();
+    QString pass = settings.value("pass", "").toString();
+
+    // UMOUNT:
+    QStringList cmdUmount;
+    cmdUmount.append("umount");
+    cmdUmount.append("/tmp/derTimeGeraet/");
+    QProcess pUmount;
+
+    qDebug() << cmdUmount;
+
+    // Add pass as environment variable:
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("BORG_PASSPHRASE", pass);
+    pUmount.setProcessEnvironment(env);
+
+    pUmount.start(borg, cmdUmount);
+    pUmount.waitForFinished(-1);
+    qDebug() << pUmount.readAllStandardError();
+}
+
+void derTimeGeraet::on_listWidget_itemClicked(QListWidgetItem *item)
+{
+    umount();
+    QVariant v = item->data(Qt::UserRole);
+    QString key = v.value<QString>();
+    mount(key);
+}

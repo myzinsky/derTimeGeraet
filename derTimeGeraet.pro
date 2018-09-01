@@ -27,7 +27,7 @@ SOURCES += main.cpp
 SOURCES += dertimegeraet.cpp
 
 HEADERS += dertimegeraet.h
-HEADERS += rsyncErrors.h
+HEADERS +=
 
 FORMS += dertimegeraet.ui
 
