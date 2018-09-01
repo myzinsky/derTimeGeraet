@@ -24,7 +24,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab1">
        <property name="accessibleName">
@@ -82,31 +82,82 @@
         <string>Settings</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
+        <item row="6" column="1">
+         <layout class="QGridLayout" name="gridLayout_4">
+          <item row="0" column="2">
+           <widget class="QLabel" name="labelWeekly">
+            <property name="text">
+             <string>Weekly:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelDaily">
+            <property name="text">
+             <string>Daily:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="4">
+           <widget class="QLabel" name="labelMonthly">
+            <property name="text">
+             <string>Monthly:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="6">
+           <widget class="QLabel" name="labelYearly">
+            <property name="text">
+             <string>Yearly:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="5">
+           <widget class="QLineEdit" name="lineEditMonthly">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>6</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="lineEditDaily">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>7</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QLineEdit" name="lineEditWeekly">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>4</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="7">
+           <widget class="QLineEdit" name="lineEditYearly">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>1</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
         <item row="2" column="2">
-         <widget class="QLineEdit" name="lineEditSource">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="2">
-         <widget class="QLineEdit" name="lineEditDest">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="2">
-         <widget class="QListWidget" name="listWidgetExeptions">
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="3">
-         <layout class="QVBoxLayout" name="verticalLayout_4">
+         <layout class="QVBoxLayout" name="verticalLayout_5">
           <item>
-           <widget class="QPushButton" name="pushButtonDest">
+           <widget class="QPushButton" name="pushButtonSource">
             <property name="text">
              <string>Set</string>
             </property>
@@ -114,31 +165,34 @@
           </item>
          </layout>
         </item>
-        <item row="3" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_2">
-          <item>
-           <widget class="QLabel" name="labelExeptions">
-            <property name="text">
-             <string>Exeptions:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="verticalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-         </layout>
+        <item row="1" column="0">
+         <widget class="QLabel" name="labelDest">
+          <property name="text">
+           <string>Destination Path:</string>
+          </property>
+         </widget>
         </item>
-        <item row="3" column="3">
+        <item row="2" column="0">
+         <widget class="QLabel" name="labelSource">
+          <property name="text">
+           <string>Source Path:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="1">
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="4" column="2">
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <item>
            <widget class="QPushButton" name="pushButtonExeptionsAdd">
@@ -175,43 +229,120 @@
           </item>
          </layout>
         </item>
-        <item row="7" column="2">
-         <spacer name="verticalSpacer">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="labelSource">
-          <property name="text">
-           <string>Source Path:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="labelDest">
-          <property name="text">
-           <string>Destination Path:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="3">
-         <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item row="4" column="0">
+         <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
-           <widget class="QPushButton" name="pushButtonSource">
+           <widget class="QLabel" name="labelExeptions">
+            <property name="text">
+             <string>Exeptions:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item row="1" column="2">
+         <layout class="QVBoxLayout" name="verticalLayout_4">
+          <item>
+           <widget class="QPushButton" name="pushButtonDest">
             <property name="text">
              <string>Set</string>
             </property>
            </widget>
           </item>
          </layout>
+        </item>
+        <item row="4" column="1">
+         <widget class="QListWidget" name="listWidgetExeptions">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="lineEditDest">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLineEdit" name="lineEditSource">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="Line" name="line_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="0">
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Pruning Settings:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="Line" name="line">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="2">
+         <widget class="QPushButton" name="pushButtonPruning">
+          <property name="text">
+           <string>Set</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="2">
+         <widget class="Line" name="line_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLineEdit" name="linePassword">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="echoMode">
+           <enum>QLineEdit::Password</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>Passphrase:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="2">
+         <widget class="QPushButton" name="pushButton">
+          <property name="text">
+           <string>Set</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
