@@ -34,7 +34,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab1">
        <property name="accessibleName">
@@ -48,9 +48,14 @@
          <widget class="QListWidget" name="listWidget">
           <property name="maximumSize">
            <size>
-            <width>200</width>
+            <width>155</width>
             <height>16777215</height>
            </size>
+          </property>
+          <property name="font">
+           <font>
+            <family>.SF Compact Display</family>
+           </font>
           </property>
          </widget>
         </item>

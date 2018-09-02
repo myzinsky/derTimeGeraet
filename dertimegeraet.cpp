@@ -74,7 +74,7 @@ void derTimeGeraet::loadBackupList()
         for(int i = 0; i < list.size(); i++)
         {
             qDebug() << list.at(i);
-            QRegExp rx("([^\\s]+)\\s+(.+)\\s+\\[(.+)\\]");
+            QRegExp rx("([^\\s]+)\\s+\\w\\w\\w, (.+)\\s+\\[(.+)\\]");
             QString name = "";
             QString key = "";
             bool match = rx.exactMatch(list.at(i));
@@ -315,6 +315,11 @@ void derTimeGeraet::on_pushButtonStart_clicked()
     // Unmount
     umount();
 
+    // Deactivate parts of UI:
+    ui->treeView->setDisabled(true);
+    ui->listWidget->setDisabled(true);
+
+    // Get stuff from config:
     QString dest = ui->lineEditDest->text();
     QString source = ui->lineEditSource->text();
     QString pass = ui->linePassword->text();
@@ -566,6 +571,9 @@ void derTimeGeraet::on_pruneFinished(int exitCode, QProcess::ExitStatus exitStat
     ui->plainTextEdit->setPlainText(log);
 
     loadBackupList();
+    // Restore parts of UI:
+    ui->treeView->setEnabled(true);
+    ui->listWidget->setEnabled(true);
     ui->pushButtonStart->setEnabled(true);
     ui->pushButtonStart->setText("Start Backup");
     setTrayIcon(false);
