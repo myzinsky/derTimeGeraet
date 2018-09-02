@@ -32,7 +32,7 @@ derTimeGeraet::derTimeGeraet(QWidget *parent) :
     setupTrayIcon();
 
     // Prevent close from closing:
-    this->setWindowFlags(Qt::Widget);
+    this->setWindowFlags(Qt::Tool);
     QApplication::setQuitOnLastWindowClosed(false);
 }
 
@@ -312,6 +312,9 @@ void derTimeGeraet::on_treeView_doubleClicked(const QModelIndex &index)
 
 void derTimeGeraet::on_pushButtonStart_clicked()
 {
+    // Unmount
+    umount();
+
     QString dest = ui->lineEditDest->text();
     QString source = ui->lineEditSource->text();
     QString pass = ui->linePassword->text();
@@ -640,6 +643,8 @@ void derTimeGeraet::umount()
     pUmount.start(borg, cmdUmount);
     pUmount.waitForFinished(-1);
     qDebug() << pUmount.readAllStandardError();
+
+    ui->treeView->setModel(nullptr);
 }
 
 void derTimeGeraet::on_listWidget_itemClicked(QListWidgetItem *item)
