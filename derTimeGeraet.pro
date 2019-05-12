@@ -4,6 +4,8 @@
 #
 #-------------------------------------------------
 
+include(googleTest.pri)
+
 QT += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -26,7 +28,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += main.cpp
 SOURCES += dertimegeraet.cpp
 
-HEADERS += dertimegeraet.h
+HEADERS += dertimegeraet.h \
+    regressionTests.h
+HEADERS +=
 
 FORMS += dertimegeraet.ui
 
@@ -34,5 +38,7 @@ RESOURCES += tray.qrc
 
 ICON = img/gear-grey.icns
 QMAKE_INFO_PLIST = Info.plist
+
+DISTFILES += googleTest.pri
 
 
