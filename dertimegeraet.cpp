@@ -19,8 +19,14 @@ derTimeGeraet::derTimeGeraet(QWidget *parent) :
     ui->setupUi(this);
     ui->tabWidget->setCurrentIndex(1);
 
+    // Setup Settings:
+    settingsFile = QApplication::applicationDirPath() + "/settings.ini";
+
     // Locate Borg:
     locateBorg();
+
+    // Load Destination List: //TODO output should go to loadListofBackups (right now loadDestination must be called before load Backup list)
+    loadDestinationsList();
 
     // Load List of Backups:
     loadBackupList();
@@ -32,29 +38,27 @@ derTimeGeraet::derTimeGeraet(QWidget *parent) :
     setupTrayIcon();
 
     // Prevent close from closing:
-    this->setWindowFlags(Qt::Tool);
-    QApplication::setQuitOnLastWindowClosed(false);
+    //this->setWindowFlags(Qt::Tool);
+    //QApplication::setQuitOnLastWindowClosed(false);
 }
 
 void derTimeGeraet::loadBackupList()
 {
-    // Setup Settings:
-    settingsFile = QApplication::applicationDirPath() + "/settings.ini";
     bool settingsAvailable = loadSettings();
 
     // Setup Dir Model:
-    QString dir = ui->lineEditDest->text();
+    QString dir = ui->comboBoxDestination->currentText();
+
     if(settingsAvailable == true && QDir(dir).exists())
     {
         ui->listWidget->clear();
 
         QSettings settings(settingsFile, QSettings::NativeFormat);
-        QString dest = settings.value("dest", "").toString();
         QString pass = settings.value("pass", "").toString();
 
         QStringList cmdList;
         cmdList.append("list");
-        cmdList.append(dest);
+        cmdList.append(dir);
         QProcess pList;
 
         qDebug() << cmdList;
@@ -110,8 +114,7 @@ derTimeGeraet::~derTimeGeraet()
 void derTimeGeraet::closeEvent(QCloseEvent *event)
 {
 #ifdef Q_OS_OSX
-    if (!event->spontaneous() || !isVisible())
-    {
+    if (!event->spontaneous() || !isVisible()) {
         return;
     }
 #endif
@@ -190,7 +193,6 @@ bool derTimeGeraet::loadSettings()
     {
         QSettings settings(settingsFile, QSettings::NativeFormat);
         QString source  = settings.value("source", "").toString();
-        QString dest    = settings.value("dest", "").toString();
         QString pass    = settings.value("pass", "").toString();
         QString hourly  = settings.value("hourly", "").toString();
         QString daily   = settings.value("daily", "").toString();
@@ -198,7 +200,6 @@ bool derTimeGeraet::loadSettings()
         QString monthly = settings.value("monthly", "").toString();
         QString yearly  = settings.value("yearly", "").toString();
 
-        ui->lineEditDest->setText(dest);
         ui->lineEditSource->setText(source);
         ui->linePassword->setText(pass);
         ui->lineEditHourly->setText(hourly);
@@ -221,12 +222,6 @@ bool derTimeGeraet::loadSettings()
 void derTimeGeraet::saveSettings()
 {
     QSettings settings(settingsFile, QSettings::NativeFormat);
-
-    if(!ui->lineEditDest->text().isEmpty())
-    {
-         QString dest = ui->lineEditDest->text();
-         settings.setValue("dest", dest);
-    }
 
     if(!ui->lineEditSource->text().isEmpty())
     {
@@ -269,14 +264,6 @@ void derTimeGeraet::saveSettings()
          QString yearly = ui->lineEditYearly->text();
          settings.setValue("yearly", yearly);
     }
-
-    // TODO:
-    //if(!ui->lineEditDest->text().isEmpty() && !ui->lineEditSource->text().isEmpty())
-    //{
-    //    ui->listWidget->setEnabled(false);
-    //    ui->treeView->setEnabled(false);
-    //    ui->pushButtonStart->setEnabled(false);
-    //}
 }
 
 void derTimeGeraet::on_pushButtonSource_clicked()
@@ -287,21 +274,6 @@ void derTimeGeraet::on_pushButtonSource_clicked()
                                                 QFileDialog::ShowDirsOnly);
     ui->lineEditSource->setText(dir);
     saveSettings();
-}
-
-void derTimeGeraet::on_pushButtonDest_clicked()
-{
-    QString dir = QFileDialog::getExistingDirectory(this,
-                                                tr("Select Directory"),
-                                                "/",
-                                                QFileDialog::ShowDirsOnly);
-    ui->lineEditDest->setText(dir);
-    saveSettings();
-}
-
-void derTimeGeraet::on_listView_clicked(const QModelIndex &index)
-{
-    // TODO Remove me
 }
 
 void derTimeGeraet::on_treeView_doubleClicked(const QModelIndex &index)
@@ -320,7 +292,7 @@ void derTimeGeraet::on_pushButtonStart_clicked()
     ui->listWidget->setDisabled(true);
 
     // Get stuff from config:
-    QString dest = ui->lineEditDest->text();
+    QString dest = ui->comboBoxDestination->currentText();
     QString source = ui->lineEditSource->text();
     QString pass = ui->linePassword->text();
 
@@ -362,7 +334,8 @@ void derTimeGeraet::on_pushButtonStart_clicked()
             cmdBorg.append("--exclude");
             cmdBorg.append(ignore);
         }
-        cmdBorg.append(dest + "::{hostname}-{now}");
+        //cmdBorg.append(dest + "::{hostname}-{now}");
+        cmdBorg.append(dest + "::pizza.jung.ms-{now}");
         cmdBorg.append(source);
 
 
@@ -384,7 +357,6 @@ void derTimeGeraet::on_pushButtonStart_clicked()
                 this,
                 SLOT(on_borgFinished(int , QProcess::ExitStatus )));
 
-        // TODO detect borg:
         pBorg->start(borg, cmdBorg);
     }
 }
@@ -427,6 +399,32 @@ void derTimeGeraet::saveIgnoreList()
     settings.endArray();
 }
 
+void derTimeGeraet::loadDestinationsList()
+{
+    QSettings settings(settingsFile, QSettings::NativeFormat);
+    int size = settings.beginReadArray("Destinations");
+    for (int i = 0; i < size; ++i) {
+        settings.setArrayIndex(i);
+        QString ignore = settings.value("Destination").toString();
+        ui->listWidgetDestinations->addItem(ignore);
+        ui->comboBoxDestination->addItem(ignore);
+    }
+    settings.endArray();
+}
+
+void derTimeGeraet::saveDestinationsList()
+{
+    QSettings settings(settingsFile, QSettings::NativeFormat);
+    settings.beginWriteArray("Destinations");
+    for(int i = 0; i < ui->listWidgetDestinations->count(); i++)
+    {
+        QString ignore = ui->listWidgetDestinations->item(i)->text();
+        settings.setArrayIndex(i);
+        settings.setValue("Destination", ignore);
+    }
+    settings.endArray();
+}
+
 void derTimeGeraet::locateBorg()
 {
     if(QFile::exists("/usr/local/bin/borg"))
@@ -460,6 +458,16 @@ void derTimeGeraet::on_pushButtonExeptionsRemove_clicked()
    saveIgnoreList();
 }
 
+void derTimeGeraet::on_pushButtonDestRemove_clicked()
+{
+   QList<QListWidgetItem*> items = ui->listWidgetDestinations->selectedItems();
+   foreach(QListWidgetItem * item, items)
+   {
+       delete ui->listWidgetDestinations->takeItem(ui->listWidgetDestinations->row(item));
+   }
+   saveDestinationsList();
+}
+
 void derTimeGeraet::on_borgFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     QString log;
@@ -491,7 +499,7 @@ void derTimeGeraet::on_borgFinished(int exitCode, QProcess::ExitStatus exitStatu
 
 void derTimeGeraet::prune()
 {
-    QString dest = ui->lineEditDest->text();
+    QString dest = ui->comboBoxDestination->currentText();
     QString source = ui->lineEditSource->text();
     QString pass = ui->linePassword->text();
     QString hourly = ui->lineEditHourly->text();
@@ -518,7 +526,8 @@ void derTimeGeraet::prune()
         cmdBorg.append("prune");
         cmdBorg.append("--list");
         cmdBorg.append("--prefix");
-        cmdBorg.append("{hostname}-");
+        //cmdBorg.append("{hostname}-");
+        cmdBorg.append("pizza.jung.ms-");
         cmdBorg.append("--show-rc");
         cmdBorg.append("--keep-hourly");
         cmdBorg.append(hourly);
@@ -577,6 +586,8 @@ void derTimeGeraet::on_pruneFinished(int exitCode, QProcess::ExitStatus exitStat
     ui->pushButtonStart->setEnabled(true);
     ui->pushButtonStart->setText("Start Backup");
     setTrayIcon(false);
+
+    exitStatus = QProcess::ExitStatus::NormalExit;
 }
 
 
@@ -593,7 +604,7 @@ void derTimeGeraet::on_pushButtonPruning_clicked()
 void derTimeGeraet::mount(QString key)
 {
     QSettings settings(settingsFile, QSettings::NativeFormat);
-    QString dest = settings.value("dest", "").toString();
+    QString dest = ui->comboBoxDestination->currentText();
     QString source = ui->lineEditSource->text();
     QString pass = settings.value("pass", "").toString();
     QString dir = "/tmp/derTimeGeraet/";
@@ -632,7 +643,7 @@ void derTimeGeraet::mount(QString key)
 void derTimeGeraet::umount()
 {
     QSettings settings(settingsFile, QSettings::NativeFormat);
-    QString dest = settings.value("dest", "").toString();
+    QString dest = ui->comboBoxDestination->currentText();
     QString pass = settings.value("pass", "").toString();
 
     // UMOUNT:
@@ -661,4 +672,22 @@ void derTimeGeraet::on_listWidget_itemClicked(QListWidgetItem *item)
     QVariant v = item->data(Qt::UserRole);
     QString key = v.value<QString>();
     mount(key);
+}
+
+void derTimeGeraet::on_pushButtonDestAdd_clicked()
+{
+    QString dir = QFileDialog::getExistingDirectory(this,
+                                                tr("Select Directory"),
+                                                "/",
+                                                QFileDialog::ShowDirsOnly);
+    ui->listWidgetDestinations->addItem(dir);
+    ui->comboBoxDestination->addItem(dir);
+    saveDestinationsList();
+}
+
+void derTimeGeraet::on_comboBoxDestination_currentIndexChanged(const QString &arg1)
+{
+    qDebug() << arg1;
+    umount();
+    loadBackupList();
 }

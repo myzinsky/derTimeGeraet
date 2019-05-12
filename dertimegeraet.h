@@ -20,43 +20,29 @@ class derTimeGeraet : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit derTimeGeraet(QWidget *parent = 0);
+    explicit derTimeGeraet(QWidget *parent = nullptr);
     ~derTimeGeraet();
     bool loadSettings();
     void saveSettings();
 
 private slots:
     void on_pushButtonSource_clicked();
-
-    void on_pushButtonDest_clicked();
-
-    void on_listView_clicked(const QModelIndex &index);
-
     void on_treeView_doubleClicked(const QModelIndex &index);
-
     void on_pushButtonStart_clicked();
-
     void closeEvent(QCloseEvent *event) override;
-
     void setTrayIcon(bool animated);
-
     void updateTrayIcon();
-
     void setupTrayIcon();
-
     void on_pushButtonExeptionsAdd_clicked();
-
     void on_pushButtonExeptionsRemove_clicked();
-
     void on_borgFinished(int exitCode, QProcess::ExitStatus exitStatus);
-
     void on_pruneFinished(int exitCode, QProcess::ExitStatus exitStatus);
-
     void on_pushButtonPassword_clicked();
-
     void on_pushButtonPruning_clicked();
-
     void on_listWidget_itemClicked(QListWidgetItem *item);
+    void on_pushButtonDestRemove_clicked();
+    void on_pushButtonDestAdd_clicked();
+    void on_comboBoxDestination_currentIndexChanged(const QString &arg1);
 
 private:
     Ui::derTimeGeraet *ui;
@@ -66,7 +52,7 @@ private:
     QAction *restoreAction;
     QTimer *timer;
     std::vector<QIcon> trayFrames;
-    int trayIconNumber;
+    size_t trayIconNumber;
     QProcess *pBorg;
     QProcess *pPrune;
     QString time;
@@ -77,6 +63,8 @@ private:
     void umount();
     void loadIgnoreList();
     void saveIgnoreList();
+    void loadDestinationsList();
+    void saveDestinationsList();
     void locateBorg();
     void prune();
 
