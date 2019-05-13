@@ -21,7 +21,7 @@ class derTimeGeraet : public QMainWindow
 
 public:
     explicit derTimeGeraet(QWidget *parent = nullptr);
-    ~derTimeGeraet();
+    ~derTimeGeraet() override;
     bool loadSettings();
     void saveSettings();
 

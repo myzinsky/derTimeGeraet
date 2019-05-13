@@ -6,7 +6,7 @@
 
 int main(int argc, char *argv[])
 {
-    std::string prefix = "--gtest_filter";
+    std::string prefix = "--gtest";
     if (argc > 1 && std::string(argv[1]).rfind(prefix, 0) == 0) {
         testing::InitGoogleTest(&argc, argv);
         return RUN_ALL_TESTS();
